@@ -1,0 +1,36 @@
+{
+  "name": "compass",
+  "version": "1.0.0",
+  "description": "",
+  "source": "index.html",
+  "scripts": {
+    "dev": "parcel -p 3030 --https",
+    "build": "parcel build "
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.12.0",
+    "@solid-primitives/scheduled": "^1.4.3",
+    "babel-preset-solid": "^1.8.9",
+    "parcel": "^2.12.0",
+    "solid-refresh": "0.6.1"
+  },
+  "dependencies": {
+    "jss": "^10.10.0",
+    "solid-element": "^1.8.1",
+    "solid-js": "^1.8.22"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "svgo": "2.8.0"
+      }
+    }
+  },
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "@parcel/resolver-default": {
+    "packageExports": true
+  }
+}

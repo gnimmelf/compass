@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+      "target": "ES6",                          // Target modern JavaScript
+      "lib": ["DOM", "DOM.Iterable", "ES6"],    // Include DOM libraries and ES6
+      "jsx": "preserve",                        // Preserve JSX for SolidJS (Parcel will handle it)
+      "jsxImportSource": "solid-js",            // Point to SolidJS for JSX runtime
+      "module": "ESNext",                       // Use ESNext for module system
+      "moduleResolution": "Node",               // Node module resolution
+      "esModuleInterop": true,                  // Allow default imports for CommonJS
+      "skipLibCheck": true,                     // Skip library checking for faster builds
+      "strict": true,                           // Enable strict type-checking options
+      "forceConsistentCasingInFileNames": true, // Enforce consistent casing in file names
+      "allowSyntheticDefaultImports": true,     // Allow default imports in modules
+      "isolatedModules": true                   // Ensure each file is treated as an isolated module
+    },
+    "include": ["./src/**/*"],                  // Include your source files (adjust the path as needed)
+    "exclude": ["node_modules"]                 // Exclude node_modules
+  }
