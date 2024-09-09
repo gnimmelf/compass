@@ -1,36 +1,38 @@
 {
   "name": "compass",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
-  "source": "index.html",
   "scripts": {
-    "dev": "parcel -p 3030 --https",
-    "build": "parcel build "
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "@babel/core": "^7.12.0",
-    "@solid-primitives/scheduled": "^1.4.3",
-    "babel-preset-solid": "^1.8.9",
-    "parcel": "^2.12.0",
-    "solid-refresh": "0.6.1"
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "babel-preset-solid": "^1.8.22",
+    "solid-devtools": "^0.30.1",
+    "solid-element": "^1.8.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3",
+    "vite-plugin-solid": "^2.10.2"
   },
   "dependencies": {
-    "jss": "^10.10.0",
-    "solid-element": "^1.8.1",
-    "solid-js": "^1.8.22"
+    "@shoelace-style/shoelace": "^2.16.0",
+    "@solid-primitives/i18n": "^2.1.1",
+    "solid-js": "^1.8.22",
+    "surrealdb": "1.0.0-beta.21",
+    "zod": "^3.23.8"
   },
-  "pnpm": {
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "svgo": "2.8.0"
-      }
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/surrolid.umd.cjs",
+  "module": "./dist/surrolid.js",
+  "exports": {
+    ".": {
+      "import": "./dist/surrolid.js",
+      "require": "./dist/surrolid.umd.cjs"
     }
-  },
-  "browserslist": "> 0.5%, last 2 versions, not dead",
-  "@parcel/resolver-default": {
-    "packageExports": true
   }
 }
