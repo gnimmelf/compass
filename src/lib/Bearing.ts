@@ -1,6 +1,6 @@
 
 import { Observable } from "./Observable"
-import { throttle } from "./utils"
+import { interpolate } from "./utils"
 
 export enum Status {
   Initializing = 'initializing',
@@ -52,7 +52,12 @@ export class Bearing extends Observable {
       permission: PermissionStatus.Default,
     }
 
-    addEventListener("deviceorientationabsolute", throttle((event: DeviceOrientationEvent) => {
+    const setBearing = interpolate((bearing: number) => {
+      this.#state.bearing = bearing
+      this.next(this.#state)
+    }, throttleMs)
+
+    addEventListener("deviceorientationabsolute", (event: DeviceOrientationEvent) => {
       //@ts-ignore
       const { alpha, absolute, webkitCompassHeading } = event
 
@@ -73,11 +78,12 @@ export class Bearing extends Observable {
 
       if (this.#state.permission === PermissionStatus.Granted) {
         // Set bearing
-        this.#state.bearing = webkitCompassHeading || alpha
+        setBearing(webkitCompassHeading || alpha)
+      } else {
+        // Push new state
+        this.next(this.#state)
       }
-      // Push new state
-      this.next(this.#state)
-    }, throttleMs), true);
+    }, true);
 
     this.next(this.#state)
   }

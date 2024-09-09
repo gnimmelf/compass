@@ -1,4 +1,5 @@
 import { Component, createEffect, from, Show } from 'solid-js';
+import { Motion } from "solid-motionone"
 
 import { Bearing, Status, PermissionStatus } from './lib/Bearing';
 
@@ -9,7 +10,7 @@ export const Compass: Component = (props) => {
   })
   const state = from(bearing)
 
-  createEffect(() => console.log(state()))
+  createEffect(() => console.log(state(), state().permission == PermissionStatus.Granted))
 
   return (
     <>
@@ -34,8 +35,17 @@ export const Compass: Component = (props) => {
           <button onclick={() => bearing.requestPermission()}>Request permission again</button>
         </Show>
 
-        <Show when={state().bearing}>
-          <p>{Math.round(state().bearing)} degrees</p>
+
+        <Show when={state().permission == PermissionStatus.Granted}>
+
+          <Show when={!isNaN(state().bearing)}>
+            <p>{Math.round(state().bearing)} degrees</p>
+          </Show>
+
+          <Show when={isNaN(state().bearing)}>
+            <p>Move the device</p>
+          </Show>
+
         </Show>
 
       </Show>
