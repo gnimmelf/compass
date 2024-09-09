@@ -1,17 +1,64 @@
 # Compass
 
-https://developer.mozilla.org/en-US/docs/Web/API/Device_orientation_events/Detecting_device_orientation
+A long time dream of getting a working compass on a webpage.
 
-## Gotchas
+Never tried it before, but I just wanted to make my own version because of the cumbersom checks.
+
+Bearing ("absolut `alpha`" | `webkitCompassHeading`) is pushed to an observable. This observable needs to be tied into the reactive system.
+
+If permissions are needed (iOS), make a call to `instance.requestPermissions`
+
+## Example
+
+```jsx
+ <>
+    <h1>Compass</h1>
+
+    <Show when={state().status == Status.Pending}>
+        <p>Loading...</p>
+    </Show>
+
+    <Show when={state().status == Status.Unsupported}>
+        <p>Not supported!</p>
+    </Show>
+
+    <Show when={state().status == Status.Ready}>
+
+        <Show when={state().permission == PermissionStatus.Default}>
+            <button onclick={() => bearing.requestPermission()}>
+                Request permission
+            </button>
+        </Show>
+
+        <Show when={state().premission == PermissionStatus.Denied}>
+            <p>Permission denied</p>
+            <button onclick={() => bearing.requestPermission()}>
+                Re-request permission
+            </button>
+        </Show>
+
+        <Show when={state().bearing}>
+            <p>{Math.round(state().bearing)} degrees</p>
+        </Show>
+
+    </Show>
+</>
+```
+
+# Gotchas
 
 1. Must be `https` connection.
 
 # TODO
 
-- [ ] Defer / throttle the orientation events
+- [x] Defer / throttle the orientation events
 
-- [ ] Do some magic softening on the bearing value
+    - [ ] Do some magic softening on the bearing value, eg defer a calculatet a mean before pushing state
 
-- [ ] Do som better checks for Safari
+- [x] Do som better checks for Safari on iOS.
 
-- [ ] Support for Firefox?
+    - [x] General feature detection
+
+- [ ] Check in Firefox
+
+- [ ] Check in iOS (+ Safari?)

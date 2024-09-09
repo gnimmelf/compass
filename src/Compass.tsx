@@ -1,27 +1,37 @@
 import { Component, createEffect, from, Show } from 'solid-js';
 
-import { Bearing, PermissionStatus } from './lib/Bearing';
+import { Bearing, Status, PermissionStatus } from './lib/Bearing';
 
-
-/**
- * Compass
- * @param props
- * @returns
- */
 export const Compass: Component = (props) => {
 
-  const bearing = new Bearing()
+  const bearing = new Bearing({
+    timeoutMs: 5000
+  })
   const state = from(bearing)
 
   createEffect(() => console.log(state()))
 
   return (
-    <div>
+    <>
       <h1>Compass</h1>
-      <Show when={!state().pending}>
 
-        <Show when={!state().hasSupport}>
-          <p>Not supported!</p>
+      <Show when={state().status == Status.Pending}>
+        <p>Loading...</p>
+      </Show>
+
+      <Show when={state().status == Status.Unsupported}>
+        <p>Not supported!</p>
+      </Show>
+
+      <Show when={state().status == Status.Ready}>
+
+        <Show when={state().permission == PermissionStatus.Default}>
+          <button onclick={() => bearing.requestPermission()}>Request permission</button>
+        </Show>
+
+        <Show when={state().premission == PermissionStatus.Denied}>
+          <p>Permission denied</p>
+          <button onclick={() => bearing.requestPermission()}>Request permission again</button>
         </Show>
 
         <Show when={state().bearing}>
@@ -29,10 +39,6 @@ export const Compass: Component = (props) => {
         </Show>
 
       </Show>
-
-      <Show when={state().hasSupport && state().permission === PermissionStatus.Default}>
-          <p>Ask for permission: `bearing.requestPermission()`!</p>
-        </Show>
-    </div>
+    </>
   )
 }

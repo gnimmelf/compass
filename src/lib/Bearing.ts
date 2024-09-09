@@ -2,6 +2,13 @@
 import { Observable } from "./Observable"
 import { throttle } from "./utils"
 
+export enum Status {
+  Initializing = 'initializing',
+  Pending = 'pending',
+  Ready = 'ready',
+  Unsupported = 'unsupported'
+}
+
 export enum PermissionStatus {
   Granted = 'granted',
   Denied = 'denied',
@@ -18,61 +25,91 @@ export enum PermissionStatus {
  *  - https://blog.stackademic.com/building-a-compass-app-with-react-and-tailwind-css-caee725a1817
  *  - https://github.com/chunlaw/react-world-compass
  */
+type Constructor = {
+  timeoutMs?: number
+  throttleMs?: number
+}
+
 export class Bearing extends Observable {
+  #timeoutMs: number
   #state: {
-    hasSupport: boolean
+    status: Status
     permission: PermissionStatus
-    pending: boolean
     bearing?: number
   }
   #eventname?: keyof WindowEventMap
   #handler?: (event: DeviceOrientationEvent) => any
 
-  constructor() {
+  constructor(args: Constructor = {}) {
+    const { timeoutMs, throttleMs } = Object.assign(args, {
+      timeoutMs: 150,
+      throttleMs: 150,
+    })
     super({})
+    this.#timeoutMs = timeoutMs
     this.#state = {
-      pending: true,
-      hasSupport: false,
+      status: Status.Initializing,
       permission: PermissionStatus.Default,
     }
 
-    let setupCompleted = false
     addEventListener("deviceorientationabsolute", throttle((event: DeviceOrientationEvent) => {
       //@ts-ignore
       const { alpha, absolute, webkitCompassHeading } = event
 
-      if (!setupCompleted) {
+      if (this.#state.status == Status.Initializing) {
         //@ts-ignore
         if (DeviceOrientationEvent.requestPermission) {
-          this.#state.hasSupport = true
+          // Assume we have support, but really we can't know until after premission is granted
+          this.#state.status = Status.Ready
         }
         else {
-          this.#state.pending = false
-          this.#state.hasSupport = absolute
+
+          this.#state.status = absolute
+            ? Status.Ready
+            : Status.Unsupported
           this.#state.permission = PermissionStatus.Granted
         }
-        setupCompleted = true
       }
-      else if (setupCompleted && this.#state.permission === PermissionStatus.Granted) {
+
+      if (this.#state.permission === PermissionStatus.Granted) {
         // Set bearing
         this.#state.bearing = webkitCompassHeading || alpha
       }
-
+      // Push new state
       this.next(this.#state)
-    }, 100), true);
+    }, throttleMs), true);
 
     this.next(this.#state)
   }
 
   async requestPermission() {
+    this.#state.status = Status.Pending
+    this.next(this.#state)
+
     try {
       //@ts-ignore
       this.#state.permission = await DeviceOrientationEvent.requestPermission();
+
+      if (this.#state.permission === PermissionStatus.Granted) {
+        // Wait to see if bearing has been set within reasonable time
+        setTimeout(() => {
+          if (this.#state.bearing === undefined) {
+            this.#state.status = Status.Unsupported
+          }
+          else {
+            this.#state.status = Status.Ready
+          }
+          this.next(this.#state)
+        }, this.#timeoutMs)
+      }
+      else {
+        this.#state.status = Status.Ready
+        this.next(this.#state)
+      }
     } catch {
-      this.#state.hasSupport = false
+      this.#state.status = Status.Unsupported
+      this.next(this.#state)
     }
-    this.#state.pending = false
-    this.next(this.#state)
   }
 
   cleanUp() {
