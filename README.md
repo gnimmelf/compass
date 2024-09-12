@@ -11,7 +11,7 @@ If permissions are needed (iOS), make a call to `instance.requestPermissions`
 ## Example
 
 ```jsx
- <>
+<>
     <h1>Compass</h1>
 
     <Show when={state().status == Status.Pending}>
@@ -25,20 +25,25 @@ If permissions are needed (iOS), make a call to `instance.requestPermissions`
     <Show when={state().status == Status.Ready}>
 
         <Show when={state().permission == PermissionStatus.Default}>
-            <button onclick={() => bearing.requestPermission()}>
-                Request permission
-            </button>
+            <button onclick={() => bearing.requestPermission()}>Request permission</button>
         </Show>
 
         <Show when={state().premission == PermissionStatus.Denied}>
             <p>Permission denied</p>
-            <button onclick={() => bearing.requestPermission()}>
-                Re-request permission
-            </button>
+            <button onclick={() => bearing.requestPermission()}>Request permission again</button>
         </Show>
 
-        <Show when={state().bearing}>
-            <p>{Math.round(state().bearing)} degrees</p>
+
+        <Show when={state().permission == PermissionStatus.Granted}>
+
+            <Show when={!isNaN(state().bearing)}>
+                <p>{Math.round(state().bearing)} degrees</p>
+            </Show>
+
+            <Show when={isNaN(state().bearing)}>
+                <p>Move the device</p>
+            </Show>
+
         </Show>
 
     </Show>

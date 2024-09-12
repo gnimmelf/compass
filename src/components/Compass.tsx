@@ -1,7 +1,15 @@
 import { Component, createEffect, from, Show } from 'solid-js';
-import { Motion } from "solid-motionone"
+import { Bearing, Status, PermissionStatus } from '../lib/Bearing';
 
-import { Bearing, Status, PermissionStatus } from './lib/Bearing';
+import { Rose } from './Rose'
+
+import { createSheet, stylesRegistry } from '../lib/styles'
+
+const { classes } = createSheet({
+  main: {
+    textAlign: 'center'
+  }
+})
 
 export const Compass: Component = (props) => {
 
@@ -10,10 +18,11 @@ export const Compass: Component = (props) => {
   })
   const state = from(bearing)
 
-  createEffect(() => console.log(state(), state().permission == PermissionStatus.Granted))
+  createEffect(() => console.log(state()))
 
   return (
-    <>
+    <main class={classes.main}>
+      <style>{stylesRegistry.toString()}</style>
       <h1>Compass</h1>
 
       <Show when={state().status == Status.Pending}>
@@ -40,6 +49,7 @@ export const Compass: Component = (props) => {
 
           <Show when={!isNaN(state().bearing)}>
             <p>{Math.round(state().bearing)} degrees</p>
+            <Rose bearing={Math.round(state().bearing)} />
           </Show>
 
           <Show when={isNaN(state().bearing)}>
@@ -49,6 +59,6 @@ export const Compass: Component = (props) => {
         </Show>
 
       </Show>
-    </>
+    </main>
   )
 }

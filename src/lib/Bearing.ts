@@ -1,6 +1,6 @@
 
 import { Observable } from "./Observable"
-import { interpolate } from "./utils"
+import { throttle } from "./utils"
 
 export enum Status {
   Initializing = 'initializing',
@@ -52,7 +52,7 @@ export class Bearing extends Observable {
       permission: PermissionStatus.Default,
     }
 
-    const setBearing = interpolate((bearing: number) => {
+    const setBearing = throttle((bearing: number) => {
       this.#state.bearing = bearing
       this.next(this.#state)
     }, throttleMs)
