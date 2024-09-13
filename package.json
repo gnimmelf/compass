@@ -19,11 +19,6 @@
   "dependencies": {
     "@solid-primitives/i18n": "^2.1.1",
     "@types/three": "^0.168.0",
-    "jss": "^10.10.0",
-    "jss-plugin-extend": "^10.10.0",
-    "jss-plugin-global": "^10.10.0",
-    "jss-plugin-nested": "^10.10.0",
-    "jss-preset-default": "^10.10.0",
     "npm": "^10.8.3",
     "solid-js": "^1.8.22",
     "three": "^0.168.0"

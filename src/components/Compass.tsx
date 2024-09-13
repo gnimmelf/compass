@@ -3,14 +3,6 @@ import { Bearing, Status, PermissionStatus } from '../lib/Bearing';
 
 import { Rose } from './Rose'
 
-import { createSheet, stylesRegistry } from '../lib/styles'
-
-const { classes } = createSheet({
-  main: {
-    textAlign: 'center'
-  }
-})
-
 export const Compass: Component = (props) => {
 
   const bearing = new Bearing({
@@ -21,10 +13,7 @@ export const Compass: Component = (props) => {
   createEffect(() => console.log(state()))
 
   return (
-    <main class={classes.main}>
-      <style>{stylesRegistry.toString()}</style>
-      <h1>Compass</h1>
-
+    <main style={{ 'text-align': 'center' }}>
       <Show when={state().status == Status.Pending}>
         <p>Loading...</p>
       </Show>

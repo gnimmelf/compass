@@ -78,7 +78,7 @@ export class Bearing extends Observable {
 
       if (this.#state.permission === PermissionStatus.Granted) {
         // Set bearing
-        setBearing(webkitCompassHeading || alpha)
+        setBearing(webkitCompassHeading || 360 - alpha!)
       } else {
         // Push new state
         this.next(this.#state)
