@@ -9,11 +9,11 @@ export const throttle = (func: Function, timeFrame: number) => {
     };
 }
 
-export const getShortestRotation = (initAngle: number) => {
-    let currentAngle = initAngle
+export const bearingToRotation = (initBearing: number) => {
+    let currentAngle = initBearing
     return (bearing: number) => {
         let delta = (bearing - currentAngle + 180) % 360 - 180;
         currentAngle = currentAngle + delta;
-        return currentAngle
+        return 360 - currentAngle
     }
 }
