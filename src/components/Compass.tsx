@@ -1,4 +1,4 @@
-import { Component, createEffect, from, Show } from 'solid-js';
+import { Component, createEffect, from, onCleanup, Show } from 'solid-js';
 import { Bearing, Status, PermissionStatus } from '../lib/Bearing';
 
 import { Rose } from './Rose'
@@ -11,6 +11,10 @@ export const Compass: Component = (props) => {
   const state = from(bearing)
 
   createEffect(() => console.log(state()))
+
+  onCleanup(() => {
+    bearing.cleanUp()
+  })
 
   return (
     <main style={{ 'text-align': 'center' }}>

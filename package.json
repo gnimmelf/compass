@@ -19,7 +19,7 @@
   "dependencies": {
     "@solid-primitives/i18n": "^2.1.1",
     "@types/three": "^0.168.0",
-    "npm": "^10.8.3",
+    "geo-three": "^0.1.14",
     "solid-js": "^1.8.22",
     "three": "^0.168.0"
   },

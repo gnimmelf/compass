@@ -75,7 +75,7 @@ export const Gyro: Component<{
     const camera = new Camera();
     const scene = new Scene(renderer, camera);
 
-    var grid = new THREE.GridHelper(10, 10, "aqua", "gray");
+    var grid = new THREE.GridHelper(6, 6, "aqua", "gray");
     scene.add(grid);
 
     const cube = new Cube()
@@ -102,7 +102,6 @@ export const Gyro: Component<{
 
     return (
         <>
-        <p>{Math.round(props.bearing)} degrees</p>
         {renderer.domElement}
         </>
     )
