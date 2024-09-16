@@ -26,17 +26,18 @@ import hurdalMap from '../assets/hurdal-map.png'
 import hurdalMapHeight from '../assets/hurdal-map-height.png'
 
 const VIEW = {
-  widthFraction: 1.2,
+  viewFraction: 1.2,
   fov: 75,
   near: 0.1,
   far: 1e12,
-  cameraPos: new THREE.Vector3(287, 113, 438),
-  targetPos: new THREE.Vector3(170, 40, -170),
+  cameraDistance: 442,
+  cameraPos: new THREE.Vector3(294, 20, 454),
+  targetPos: new THREE.Vector3(382, 3, -17),
   get width() {
-    return window.innerWidth / VIEW.widthFraction
+    return window.innerWidth / VIEW.viewFraction
   },
   get height() {
-    return window.innerHeight / VIEW.widthFraction
+    return window.innerHeight / VIEW.viewFraction
   },
   get aspect() {
     return VIEW.width / VIEW.height
@@ -81,6 +82,7 @@ export const MapGl: Component = (props) => {
 
   const camera = new THREE.PerspectiveCamera(VIEW.fov, VIEW.aspect, VIEW.near, VIEW.far)
   camera.position.set(VIEW.cameraPos.x, VIEW.cameraPos.y, VIEW.cameraPos.z);
+  console.log(camera.zoom)
 
 
   const rayCaster = new THREE.Raycaster();
@@ -168,7 +170,8 @@ export const MapGl: Component = (props) => {
     rayCaster.setFromCamera(pointer, camera)
     const intersections = rayCaster.intersectObject(groundMesh)
     if (intersections.length > 0) {
-      console.log(intersections)
+      console.log(intersections[0])
+      console.log(camera)
     }
   }
 
