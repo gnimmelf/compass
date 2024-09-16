@@ -20,6 +20,7 @@
     "@solid-primitives/i18n": "^2.1.1",
     "@types/three": "^0.168.0",
     "geo-three": "^0.1.14",
+    "lil-gui": "^0.19.2",
     "solid-js": "^1.8.22",
     "three": "^0.168.0"
   },

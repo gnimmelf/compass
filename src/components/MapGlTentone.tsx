@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
   DebugProvider,
+  MapTilerProvider,
   MapView,
   OpenStreetMapsProvider,
   UnitsUtils
@@ -51,7 +52,7 @@ const VIEW = {
   }
 } as const
 
-const providers = {
+const provider = ({
   debug: {
     mapNodeType: MapView.PLANAR,
     provider: new DebugProvider()
@@ -60,11 +61,17 @@ const providers = {
     mapNodeType: MapView.PLANAR,
     provider: new OpenStreetMapsProvider()
   },
+  mapTiler: {
+    mapNodeType: MapView.PLANAR,
+    provider: new MapTilerProvider('YNFgrZRjeDjcbOMKxgzA', 'maps', 'backdrop', 'png')
+  },
   kartverket: {
     mapNodeType: MapView.PLANAR,
     provider: new KartVerketMapProvider()
   }
-} as const
+} as const).mapTiler
+
+
 
 const MOUSE = { LEFT: 0, MIDDLE: 1, RIGHT: 2, ROTATE: 0, DOLLY: 1, PAN: 2 };
 const TOUCH = { ROTATE: 0, PAN: 1, DOLLY_PAN: 2, DOLLY_ROTATE: 3 };
@@ -81,7 +88,7 @@ class MapControls extends OrbitControls {
     this.touches = { ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_ROTATE };
 
     this.minDistance = 1e1;
-    this.zoomSpeed = 1.0;
+    this.zoomSpeed = 2.0;
     this.minPolarAngle = 0;
     this.maxPolarAngle = (Math.PI / 2) - (Math.PI / 18)
 
@@ -97,7 +104,6 @@ class Map extends MapView {
   controls: MapControls
 
   constructor(camera: THREE.Camera, renderer: THREE.Renderer) {
-    const provider = providers.debug
     super(provider.mapNodeType, provider.provider)
 
     this.controls = new MapControls(camera, renderer)

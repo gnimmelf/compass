@@ -17,6 +17,9 @@ importers:
       geo-three:
         specifier: ^0.1.14
         version: 0.1.14(three@0.168.0)
+      lil-gui:
+        specifier: ^0.19.2
+        version: 0.19.2
       solid-js:
         specifier: ^1.8.22
         version: 1.8.22
@@ -618,6 +621,9 @@ packages:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
+
+  lil-gui@0.19.2:
+    resolution: {integrity: sha512-nU8j4ND702ouGfQZoaTN4dfXxacvGOAVK0DtmZBVcUYUAeYQXLQAjAN50igMHiba3T5jZyKEjXZU+Ntm1Qs6ZQ==}
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
@@ -1309,6 +1315,8 @@ snapshots:
   jsesc@2.5.2: {}
 
   json5@2.2.3: {}
+
+  lil-gui@0.19.2: {}
 
   lru-cache@5.1.1:
     dependencies:
