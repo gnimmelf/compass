@@ -8,22 +8,38 @@
  *
  */
 
-import { Component, createSignal, from, onCleanup, onMount } from 'solid-js';
+import {
+  Component,
+  createResource,
+  createSignal,
+  from,
+  onCleanup,
+  onMount,
+  Suspense
+} from 'solid-js';
+import { createStore } from "solid-js/store";
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import {
-  DebugProvider,
-  MapView,
-  OpenStreetMapsProvider,
-  UnitsUtils
-} from 'geo-three';
 import * as dat from 'lil-gui'
-import {
-  Bearing,
-} from '../lib/Bearing';
-import { KartVerketMapProvider } from '../lib/KartverketMapProvider';
-import hurdalMap from '../assets/hurdal-map.png'
-import hurdalMapHeight from '../assets/hurdal-map-height.png'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+import { Bearing } from '../lib/Bearing';
+import { svgLoader } from '../lib/svg';
+import UrlMapHurdal from '../assets/hurdal-map.png'
+import urlMapHurdalTopo from '../assets/hurdal-map-height.png'
+import urlRose from '../assets/compass-rose.svg'
+
+console.log('maxTextureSize:', WebGL2RenderingContext.MAX_TEXTURE_SIZE)
+
+const guiProps = {
+  cssColor: '#ff00ff',
+  wireframe: false,
+  rotationX: -Math.PI / 6,
+  rotationY: 0,
+  rotationZ: 0,
+  posX: 0,
+  posY: 0,
+  displacement: 122,
+}
 
 const VIEW = {
   viewFraction: 1.2,
@@ -58,8 +74,9 @@ class MapControls extends OrbitControls {
     this.mouseButtons = { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.ROTATE };
     this.touches = { ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_ROTATE };
 
-    this.minDistance = 1e1;
-    this.zoomSpeed = 2.0;
+    this.minDistance = 100;
+    this.maxDistance = 1000
+    this.zoomSpeed = 0.5;
     this.minPolarAngle = 0;
     this.maxPolarAngle = (Math.PI / 2) - (Math.PI / 18)
   }
@@ -75,15 +92,16 @@ export const MapGl: Component = (props) => {
   const [cameraTargetInfo, setCameraTargetInfo] = createSignal('-')
 
   const renderer = new THREE.WebGLRenderer({
-    antialias: true
+    antialias: true,
+    alpha: true,
+    powerPreference: 'high-performance'
   });
 
   const scene = new THREE.Scene()
 
   const camera = new THREE.PerspectiveCamera(VIEW.fov, VIEW.aspect, VIEW.near, VIEW.far)
+  scene.add(camera) // Makes Camera a HUD that can contain objects
   camera.position.set(VIEW.cameraPos.x, VIEW.cameraPos.y, VIEW.cameraPos.z);
-  console.log(camera.zoom)
-
 
   const rayCaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -94,28 +112,49 @@ export const MapGl: Component = (props) => {
   const axesHelper = new THREE.AxesHelper(1e12)
   const aLight = new THREE.AmbientLight(0xffffff, Math.PI)
 
+  /**
+   * Compass rose
+   */
+
+  const compass = new THREE.Group();
+  svgLoader(urlRose, {
+    scaleVector: new THREE.Vector3(.02, .02, .02),
+    reCenter: new THREE.Vector3(0,10,0)
+  }).then(rose => {
+    rose.name = 'rose'
+    compass.add(rose);
+    compass.rotation.x = guiProps.rotationX
+    camera.add(compass);
+
+    const padding = 3
+    const distance = 10;
+    // Calculate the visible height at the given distance
+    const visibleHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * distance;
+    // Calculate the visible width at the given distance (based on the aspect ratio)
+    const visibleWidth = visibleHeight * camera.aspect;
+    // Set the position of the compass to the top-left of the camera's view
+    const offsetX = -visibleWidth / 2 + padding; // Add any padding if needed
+    const offsetY = visibleHeight / 2 - padding; // Add any padding if needed
+
+    // Position the compass at the top-left corner
+    compass.position.set(offsetX, offsetY, -distance);
+  })
+
   scene.add(
     axesHelper,
     aLight,
   )
 
-  // Displacement map
-
-  const guiProps = {
-    cssColor: '#ff00ff',
-    wireframe: false,
-    rotation: -Math.PI / 2,
-    axisPos: 0,
-    displacement: 122
-  }
-
+  /**
+   *  Displacement map
+   */
   const groundGeo = new THREE.PlaneGeometry(1000, 1000, 100, 100)
 
-  const mapTexture = new THREE.TextureLoader().load(hurdalMap)
-  const dispMapTexture = new THREE.TextureLoader().load(hurdalMapHeight)
+  const mapTexture = new THREE.TextureLoader().load(UrlMapHurdal)
+  const dispMapTexture = new THREE.TextureLoader().load(urlMapHurdalTopo)
 
   const groundMat = new THREE.MeshStandardMaterial({
-    // color: 0xbbff00,
+    color: new THREE.Color(guiProps.cssColor),
     wireframe: guiProps.wireframe,
     map: mapTexture,
     displacementMap: dispMapTexture,
@@ -123,37 +162,60 @@ export const MapGl: Component = (props) => {
   })
 
   const groundMesh = new THREE.Mesh(groundGeo, groundMat)
-  groundMesh.rotation.x = guiProps.rotation
-  groundMesh.position.z = guiProps.axisPos
+  groundMesh.rotation.x = -Math.PI / 2
   scene.add(groundMesh)
 
   scene.updateMatrixWorld()
 
-  // lil-gui
-
+  // LIL-GUI onChange
   const gui = new dat.GUI();
-  gui.addColor(guiProps, 'cssColor').onChange((e: THREE.ColorRepresentation) => {
+  const guiScene = gui.addFolder('Scene')
+  const guiRose = gui.addFolder('Rose')
+
+  guiScene.addColor(guiProps, 'cssColor').onChange((e: THREE.ColorRepresentation) => {
     groundMat.color = new THREE.Color(e)
   })
-  gui.add(guiProps, 'wireframe').onChange((e: boolean) => {
+  guiScene.add(guiProps, 'wireframe').onChange((e: boolean) => {
     groundMat.wireframe = e
   })
-  gui.add(guiProps, 'rotation', -Math.PI, Math.PI)
-    .onChange((e: number) => {
-      groundMesh.rotation.x = e
-    })
-  gui.add(guiProps, 'axisPos', -100, 100, 1).onChange((e: number) => {
-    groundMesh.position.y = e
-  })
-  gui.add(guiProps, 'displacement', 0, 350, 1).onChange((e: number) => {
+  guiScene.add(guiProps, 'displacement', 0, 350, 1).onChange((e: number) => {
     groundMat.displacementScale = e
   })
+  guiRose.add(guiProps, 'rotationX', -Math.PI, Math.PI).onChange((e: number) => {
+    const rose = compass.getObjectByName('rose')
+    //@ts-ignore
+    rose.rotation.x = e
+  })
+  guiRose.add(guiProps, 'rotationY', -Math.PI, Math.PI).onChange((e: number) => {
+    const rose = compass.getObjectByName('rose')
+    //@ts-ignore
+    rose.rotation.y = e
+  })
+  guiRose.add(guiProps, 'rotationZ', -Math.PI, Math.PI).onChange((e: number) => {
+    const rose = compass.getObjectByName('rose')
+    //@ts-ignore
+    rose.rotation.z = e
+  })
+  guiRose.add(guiProps, 'posX', -10, 10, .01).onChange((e: number) => {
+    compass.position.x = e
+  })
+  guiRose.add(guiProps, 'posY', -10, 10, .01).onChange((e: number) => {
+    compass.position.y = e
+  })
 
+  var dir = new THREE.Vector3();
+  var sph = new THREE.Spherical();
+  var roseDirection = new THREE.Vector3(0,0,1);
   renderer.setAnimationLoop(() => {
+    // Scene
     controls.update()
+    camera.getWorldDirection(dir);
+    sph.setFromVector3(dir);
+    compass.getObjectByName('rose')?.setRotationFromAxisAngle(roseDirection, Math.PI - sph.theta)
     renderer.render(scene, camera)
+    // Signals
     setCameraInfo(`X:${camera.position.x}, Y:${camera.position.y}, Z:${camera.position.z}`)
-    // setCameraTargetInfo(`X:${cameraTargetVec2.x}, Y:${cameraTargetVec2.y}`)
+    setCameraTargetInfo(`Degrees:${sph.theta}`)
   });
 
   function onResize() {
@@ -191,14 +253,13 @@ export const MapGl: Component = (props) => {
   })
 
   return (
-    <>
+    <Suspense fallback="Loading...">
       {renderer.domElement}
       <div>
         <div>{cameraInfo()}</div>
         <div>{cameraTargetInfo()}</div>
         <div>{state().bearing ?? '-'}</div>
-        <img src={hurdalMapHeight} />
       </div>
-    </>
+    </Suspense>
   )
 }

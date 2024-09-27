@@ -1,3 +1,27 @@
+# MapGlHurdal
+
+## TODO
+
+- [ ] Get the compass on the map
+
+    - [ ] Toggle to orientate map after device
+
+    - [x] Toggle to orient compass after MapControls
+
+- [ ] Figure out how to transpose webMercator/EGS84 from the segment of the map-texture used and onto the mesh
+
+    - [ ] Get ideas from `tentone/geo-three`
+
+    - [ ] Plot some geo-locations i Hurdal onto the map
+
+    - [ ] Get higher fidelity on the map-texture
+
+        - [ ] Maby this is a blocker, and we need some tiling system
+
+            - [ ] If so, re-check using / copying from `tentone/geo-three`
+
+- [ ] Make a skybox
+
 # Compass
 
 A long time dream of getting a working compass on a webpage.
