@@ -96,31 +96,35 @@ class GroundMap {
   planeWidth: number = 1000
   planeHeight: number = 1000
 
-  planeGeo: THREE.PlaneGeometry
-  mapTexture: THREE.Texture
-  dispMapTexture: THREE.Texture
-  material: THREE.MeshStandardMaterial
-  mesh: THREE.Mesh
+  planeGeo!: THREE.PlaneGeometry
+  mapTexture!: THREE.Texture
+  dispMapTexture!: THREE.Texture
+  material!: THREE.MeshStandardMaterial
+  mesh!: THREE.Mesh
 
   constructor(scene: THREE.Scene, bounds?: THREE.Vector4) {
     this.bounds = bounds
-    this.mapTexture = new THREE.TextureLoader().load(UrlMapHurdal)
-    console.log(this.mapTexture)
-    this.planeGeo = new THREE.PlaneGeometry(this.planeWidth, this.planeHeight, 100, 100)
+    const loader = new THREE.TextureLoader()
+    loader.load(UrlMapHurdal, (mapTexture) => {
+      this.mapTexture = mapTexture
 
-    this.dispMapTexture = new THREE.TextureLoader().load(urlMapHurdalTopo)
-    this.material = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(guiProps.cssColor),
-      wireframe: guiProps.wireframe,
-      map: this.mapTexture,
-      displacementMap: this.dispMapTexture,
-      displacementScale: guiProps.displacement,
+      console.log(this.mapTexture.source.data)
+      const { naturalWidth, naturalHeight } = this.mapTexture.source.data
+      this.planeGeo = new THREE.PlaneGeometry(naturalWidth, naturalHeight, 100, 100)
+
+      this.dispMapTexture = new THREE.TextureLoader().load(urlMapHurdalTopo)
+      this.material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(guiProps.cssColor),
+        wireframe: guiProps.wireframe,
+        map: this.mapTexture,
+        displacementMap: this.dispMapTexture,
+        displacementScale: guiProps.displacement,
+      })
+      this.mesh = new THREE.Mesh(this.planeGeo, this.material)
+      this.mesh.rotation.x = -Math.PI / 2
+      scene.add(this.mesh)
+      scene.updateMatrixWorld()
     })
-
-    this.mesh = new THREE.Mesh(this.planeGeo, this.material)
-    this.mesh.rotation.x = -Math.PI / 2
-    scene.add(this.mesh)
-    scene.updateMatrixWorld()
   }
 
   addGui(folder: dat.GUI) {
@@ -246,7 +250,7 @@ export const MapGl: Component = (props) => {
   scene.add(
     camera,
     aLight
-  ) // Makes Camera a HUD that can contain objects
+  )
 
   /**
    * Helpers, misc
@@ -255,7 +259,7 @@ export const MapGl: Component = (props) => {
   const pointer = new THREE.Vector2();
   const axesHelper = new THREE.AxesHelper(1e12)
   scene.add(
-    axesHelper,
+    // axesHelper,
   )
 
   /**
