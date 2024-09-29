@@ -34,9 +34,7 @@ export const svgLoader = (resourceUrl: string, options: LoaderOptions = {}): Pro
             (data: any) => {
                 const shapes = meshMapperFn(data)
                 const group = new THREE.Group()
-                const axesHelper = new THREE.AxesHelper(100)
                 group.add(shapes)
-                group.add(axesHelper)
                 if (scaleVector) {
                     group.scale.set(scaleVector.x, scaleVector.y, scaleVector.z)
                 }
