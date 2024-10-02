@@ -6,22 +6,19 @@ type SvgObj = {
 }
 
 type LoaderOptions = {
-    meshMapperFn?: (svgData: string | SvgObj) => THREE.Group<THREE.Object3DEventMap>,
+    shapeParser?: (svgData: string | SvgObj) => THREE.Group<THREE.Object3DEventMap>,
     reCenter?: undefined | boolean | THREE.Vector3
-    scaleVector?: THREE.Vector3
+    reScale?: THREE.Vector3
 }
 
-const fillMaterial = new THREE.MeshBasicMaterial({ color: "#F3FBFB" });
-const strokeMaterial = new THREE.LineBasicMaterial({ color: "#00A5E6" });
-
-export const svgLoader = (resourceUrl: string, options: LoaderOptions = {}): Promise<THREE.Group<THREE.Object3DEventMap>> => {
+const svgLoader = (resourceUrl: string, options: LoaderOptions = {}): Promise<THREE.Group<THREE.Object3DEventMap>> => {
     const {
-        meshMapperFn,
+        shapeParser,
         reCenter,
-        scaleVector
+        reScale
     } = {
         // Defaults
-        meshMapperFn: svgStr2ExtrudedMeshGroup,
+        shapeParser: svgStr2MeshGroup,
         reCenter: true,
         ...options
     }
@@ -32,11 +29,11 @@ export const svgLoader = (resourceUrl: string, options: LoaderOptions = {}): Pro
         loader.load(
             resourceUrl,
             (data: any) => {
-                const shapes = meshMapperFn(data)
+                const shapes = shapeParser(data)
                 const group = new THREE.Group()
                 group.add(shapes)
-                if (scaleVector) {
-                    group.scale.set(scaleVector.x, scaleVector.y, scaleVector.z)
+                if (reScale) {
+                    group.scale.set(reScale.x, reScale.y, reScale.z)
                 }
                 if (reCenter) {
                     const bBox = new THREE.Box3()
@@ -66,7 +63,7 @@ export const svgLoader = (resourceUrl: string, options: LoaderOptions = {}): Pro
     })
 }
 
-export const svgStr2MeshGroup = (svg: string | SvgObj) => {
+const svgStr2MeshGroup = (svg: string | SvgObj) => {
     const loader = new SVGLoader();
     const svgData = typeof svg === 'string'
         ? loader.parse(svg)
@@ -98,11 +95,17 @@ export const svgStr2MeshGroup = (svg: string | SvgObj) => {
     return svgGroup
 }
 
-export const svgStr2ExtrudedMeshGroup = (svg: string | SvgObj, extrusion = 2) => {
+const svgStr2MeshGroup3d = (
+    svg: string | SvgObj,
+    extrusion = 2,
+    fillMaterial: THREE.MeshBasicMaterial,
+    strokeMaterial: THREE.LineBasicMaterial,
+) => {
     const loader = new SVGLoader();
     const svgData = typeof svg === 'string'
         ? loader.parse(svg)
         : svg
+
     const svgGroup = new THREE.Group();
     const updateMap = [];
 
@@ -124,4 +127,32 @@ export const svgStr2ExtrudedMeshGroup = (svg: string | SvgObj, extrusion = 2) =>
         });
     });
     return svgGroup
+}
+
+export const loadSvg3d = (
+    resourceUrl: string,
+    options: Omit<LoaderOptions, 'shapeParser'> & {
+        fillMaterial: THREE.MeshBasicMaterial,
+        strokeMaterial: THREE.LineBasicMaterial
+        extrusion: number
+    }
+) => {
+    const { reCenter, reScale, fillMaterial, strokeMaterial, extrusion } = options
+    return svgLoader(resourceUrl, {
+        reCenter,
+        reScale,
+        shapeParser: (svgData) => svgStr2MeshGroup3d(svgData, extrusion, fillMaterial, strokeMaterial)
+    })
+}
+
+export const loadSvg = (
+    resourceUrl: string,
+    options: Omit<LoaderOptions, 'shapeParser'>
+) => {
+    const { reCenter, reScale } = options
+    return svgLoader(resourceUrl, {
+        reCenter,
+        reScale,
+        shapeParser: (svgData) => svgStr2MeshGroup(svgData)
+    })
 }
