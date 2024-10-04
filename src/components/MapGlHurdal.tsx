@@ -35,7 +35,7 @@ console.log('maxTextureSize:', WebGL2RenderingContext.MAX_TEXTURE_SIZE)
 
 const guiProps = {
   mapColor: '#ffffff',
-  wireframe: false,
+  wireframe: true,
   rotationX: -Math.PI / 6,
   rotationY: 0,
   rotationZ: 0,
@@ -89,7 +89,7 @@ class MapControls extends OrbitControls {
     this.maxDistance = 1000
     this.zoomSpeed = 0.5;
     this.minPolarAngle = 0;
-    this.maxPolarAngle = (Math.PI / 2) - (Math.PI / 18)
+    // this.maxPolarAngle = (Math.PI / 2) - (Math.PI / 18)
   }
 }
 
@@ -103,6 +103,8 @@ class GroundMap {
   manager: THREE.LoadingManager
   scene: THREE.Scene
   bounds: MapBounds
+
+  geometryWidthSegments = 20
 
   planeGeometry!: THREE.PlaneGeometry
   mapTexture!: THREE.Texture
@@ -119,7 +121,7 @@ class GroundMap {
       this.#createMesh()
     };
     // Start loading textures
-    this.mapTexture = new THREE.TextureLoader(this.manager).load(UrlMapHurdal),
+    this.mapTexture = new THREE.TextureLoader(this.manager).load(UrlMapHurdal)
     this.dispMapTexture = new THREE.TextureLoader(this.manager).load(urlMapHurdalTopo)
     this.dispMapTexture.wrapS = THREE.ClampToEdgeWrapping;
     this.dispMapTexture.wrapT = THREE.ClampToEdgeWrapping;
@@ -127,66 +129,74 @@ class GroundMap {
 
   async #createMesh() {
     const displacementImage = this.dispMapTexture.image as HTMLImageElement;
+    const heightSegments = Math.floor(this.geometryWidthSegments / displacementImage.width * displacementImage.height)
+
+    console.log(
+      this.geometryWidthSegments,
+      Math.round(displacementImage.width /displacementImage.height * 100)/100,
+      Math.round(this.geometryWidthSegments / heightSegments * 100)/100,
+    )
+
     this.planeGeometry = new THREE.PlaneGeometry(
       displacementImage.width,
       displacementImage.height,
-      displacementImage.width,
-      displacementImage.height
+      this.geometryWidthSegments,
+      heightSegments
     )
 
     this.material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(guiProps.mapColor),
       wireframe: guiProps.wireframe,
-      map: this.mapTexture,
-      displacementScale: guiProps.displacement,
+      // map: this.mapTexture,
+      map: this.dispMapTexture,
     })
     this.mesh = new THREE.Mesh(this.planeGeometry, this.material)
     this.mesh.rotation.x = -Math.PI / 2
     this.scene.add(this.mesh)
-    this.updateGroundGeometry(this.material.displacementScale)
+    // Displacement
+    this.updateGroundGeometry(guiProps.displacement)
     this.scene.updateMatrixWorld()
   }
 
   updateGroundGeometry(displacementScale: number) {
     const displacementImage = this.dispMapTexture.image as HTMLImageElement;
+
     const canvas = document.createElement('canvas');
-    const ctx2d = canvas.getContext('2d') as CanvasRenderingContext2D;
     canvas.width = displacementImage.width;
     canvas.height = displacementImage.height;
+
+    const ctx2d = canvas.getContext('2d', {
+      willReadFrequently: true
+    }) as CanvasRenderingContext2D;
     ctx2d.drawImage(displacementImage, 0, 0);
-    const displacementData = ctx2d.getImageData(0, 0, displacementImage.width, displacementImage.height).data;
 
-    const vertices = this.planeGeometry.attributes.position.array;
-    const widthSegments = (this.planeGeometry.parameters.widthSegments + 1) as number;
-    const heightSegments = (this.planeGeometry.parameters.heightSegments + 1) as number;
+    // Account for one extra vertex per segment dimension, that e.g. a length of 2 segments have 3 vertices
+    const maxVertX = (this.planeGeometry.parameters.widthSegments + 1) as number;
+    const maxVertY = (this.planeGeometry.parameters.heightSegments + 1) as number;
 
+    const pixelsPerVertX = Math.round(displacementImage.width / maxVertX)
+    const pixelsPerVertY = Math.round(displacementImage.height / maxVertY)
+
+    // Account for zero-based indexing of the pixels (Needed?)
     const maxPixelX = displacementImage.width - 1;
     const maxPixelY = displacementImage.height - 1;
 
-    // Loop through the vertices and update Z-coordinate based on displacement map pixel data
-    for (let i = 0; i < vertices.length; i += 3) {
-      /*
-      TODO! Implement pixel sampling
-      For example, if your displacement map is 512x512 pixels and your geometry has 100 segments,
-      you'll need to scale the access of pixels accordingly to avoid out-of-bounds or incorrect sampling:
-        ```
-        const pixelX = Math.floor(x / widthSegments * displacementImage.width);
-        const pixelY = Math.floor(y / heightSegments * displacementImage.height);
-        ```
-      This ensures that the x and y vertex coordinates properly map to the displacement map's pixel coordinates.
-      */
+    // Loop through the geometry vertices and update Z-coordinate based on displacement map pixel data
+    let imgData: ImageData
+    let displacementVal, vertIdx: number
+    const position = this.planeGeometry.getAttribute('position')
+    for (let vertX = 0; vertX < maxVertX; vertX++) {
+      for (let vertY = 0; vertY < maxVertY; vertY++) {
+        const pixelX = Math.min(Math.round(vertX * pixelsPerVertX), maxPixelX)
+        const pixelY = Math.min(Math.round(vertY * pixelsPerVertY), maxPixelY)
 
-      // Remove out-of-Bounds Pixel Access by limiting the pixel sampling to size of the displacement-image
-      const x = Math.min(Math.floor((i / 3) % (widthSegments)), maxPixelX)
-      const y = Math.min(Math.floor(i / 3 / (widthSegments)), maxPixelY)
-
-      const pixelIndex = 4 * (y * displacementImage.width + x); // 4 values for RGBA
-      const pixelValue = displacementData[pixelIndex] / 255; // Normalize
-
-      // Modify Z coordinate based on the displacement map pixel value
-      vertices[i + 2] = pixelValue * displacementScale;
+        imgData = ctx2d.getImageData(pixelX, pixelY, 1, 1)
+        displacementVal = Math.round(imgData.data[0] / 255.0 * displacementScale)
+        // Count number of X-rows and add index of current X-row
+        vertIdx = (maxVertX * vertY) + vertX
+        position.setZ(vertIdx, displacementVal);
+      }
     }
-
     this.planeGeometry.attributes.position.needsUpdate = true;
     this.planeGeometry.computeVertexNormals();
     console.log('Updated geometry', displacementScale)
@@ -268,10 +278,10 @@ class CompassRose {
       // Calculate the visible width at the given distance (based on the aspect ratio)
       const visibleWidth = visibleHeight * camera.aspect;
       // Set the position of the compass to the top-left of the camera's view
-      const offsetX = -visibleWidth / 2 + padding; // Add any padding if needed
-      const offsetY = visibleHeight / 2 - padding; // Add any padding if needed
+      const pixelsPerVertX = -visibleWidth / 2 + padding; // Add any padding if needed
+      const pixelsPerVertY = visibleHeight / 2 - padding; // Add any padding if needed
       // Position the compass at the top-left corner
-      this.compass.position.set(offsetX, offsetY, -distance);
+      this.compass.position.set(pixelsPerVertX, pixelsPerVertY, -distance);
     })
   }
 
