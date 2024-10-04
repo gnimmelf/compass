@@ -34,7 +34,7 @@ import urlBg from '../assets/sky.jpeg'
 console.log('maxTextureSize:', WebGL2RenderingContext.MAX_TEXTURE_SIZE)
 
 const guiProps = {
-  mapColor: '#ffffff',
+  mapColor: '#fd8181',
   wireframe: true,
   rotationX: -Math.PI / 6,
   rotationY: 0,
@@ -51,9 +51,9 @@ const gui = new dat.GUI({ closeFolders: true });
 const guiGround = gui.addFolder('Ground')
 const guiRose = gui.addFolder('Rose')
 
-
 const VIEW = {
-  viewFraction: 1.2,
+  viewFractionX: .9,
+  viewFractionY: .8,
   fov: 75,
   near: 0.1,
   far: 1e12,
@@ -61,10 +61,10 @@ const VIEW = {
   cameraPos: new THREE.Vector3(-45, 710, 850),
   aLight: new THREE.AmbientLight(0xffffff, Math.PI),
   get width() {
-    return window.innerWidth / VIEW.viewFraction
+    return window.innerWidth * VIEW.viewFractionX
   },
   get height() {
-    return window.innerHeight / VIEW.viewFraction
+    return window.innerHeight  * VIEW.viewFractionY
   },
   get aspect() {
     return VIEW.width / VIEW.height
@@ -89,10 +89,13 @@ class MapControls extends OrbitControls {
     this.maxDistance = 1000
     this.zoomSpeed = 0.5;
     this.minPolarAngle = 0;
-    // this.maxPolarAngle = (Math.PI / 2) - (Math.PI / 18)
+    this.maxPolarAngle = (Math.PI / 2) - (Math.PI / 18)
   }
 }
 
+/**
+ * Ground Map Plane
+ */
 type MapBounds = {
   minLat: number,
   maxLat: number,
@@ -104,7 +107,8 @@ class GroundMap {
   scene: THREE.Scene
   bounds: MapBounds
 
-  geometryWidthSegments = 20
+  planeGeoWidth = 1000
+  planeGeoSegX = 50 // Increase to match diplacement better with texture
 
   planeGeometry!: THREE.PlaneGeometry
   mapTexture!: THREE.Texture
@@ -129,26 +133,23 @@ class GroundMap {
 
   async #createMesh() {
     const displacementImage = this.dispMapTexture.image as HTMLImageElement;
-    const heightSegments = Math.floor(this.geometryWidthSegments / displacementImage.width * displacementImage.height)
+    const planeGeoHeight = this.planeGeoWidth / displacementImage.width * displacementImage.height
+    const planeGeoSegY = Math.floor(this.planeGeoSegX / displacementImage.width * displacementImage.height)
 
-    console.log(
-      this.geometryWidthSegments,
-      Math.round(displacementImage.width /displacementImage.height * 100)/100,
-      Math.round(this.geometryWidthSegments / heightSegments * 100)/100,
-    )
+    console.log('Segs', this.planeGeoSegX, planeGeoSegY, Math.round(this.planeGeoSegX / planeGeoSegY * 100) / 100)
+    console.log('Dims', this.planeGeoWidth, planeGeoHeight, Math.round(displacementImage.width / displacementImage.height * 100) / 100)
 
     this.planeGeometry = new THREE.PlaneGeometry(
-      displacementImage.width,
-      displacementImage.height,
-      this.geometryWidthSegments,
-      heightSegments
+      this.planeGeoWidth,
+      planeGeoHeight,
+      this.planeGeoSegX,
+      planeGeoSegY
     )
 
     this.material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(guiProps.mapColor),
       wireframe: guiProps.wireframe,
-      // map: this.mapTexture,
-      map: this.dispMapTexture,
+      map: this.mapTexture,
     })
     this.mesh = new THREE.Mesh(this.planeGeometry, this.material)
     this.mesh.rotation.x = -Math.PI / 2
@@ -330,7 +331,7 @@ export const MapGl: Component = (props) => {
   const state = from(deviceBearing)
   const [store, setStore] = createStore({
     mapTheta: 0,
-    mousePos: new THREE.Vector3(0, 0, 0)
+    mousePos: { x: 0, y: 0}
   })
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -379,21 +380,6 @@ export const MapGl: Component = (props) => {
   groundMap.addGui(guiGround)
 
   /**
-   * Ainmationloop
-   */
-  renderer.setAnimationLoop(() => {
-    // Scene
-    controls.update()
-    compass.animate()
-    groundMap.animate()
-    renderer.render(scene, camera)
-    // Signals
-    setStore({
-      mapTheta: compass.bearing
-    })
-  });
-
-  /**
    * Eventhandlers
    */
   function onResize() {
@@ -415,11 +401,8 @@ export const MapGl: Component = (props) => {
   scene.add(marker);
 
   function setMarker(evt: MouseEvent) {
-    // Normalize mouse position to [-1, 1]
-    mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(groundMap.mesh)
+    const intersects = raycaster.intersectObject(groundMap.mesh, false)
     if (intersects.length > 0) {
       // Set marker position the intersection point and make it visible
       marker.position.copy(intersects[0].point);
@@ -427,11 +410,39 @@ export const MapGl: Component = (props) => {
     }
   }
 
+  function setMousePos(evt: MouseEvent) {
+    // Normalize mouse position to [-1, 1]
+    const rect = renderer.domElement.getBoundingClientRect()
+    mouse.x = ( ( evt.clientX - rect.left ) / ( rect.right - rect.left ) ) * 2 - 1
+    mouse.y = - ( ( evt.clientY - rect.top ) / ( rect.bottom - rect.top) ) * 2 + 1
+    setStore('mousePos', { x: mouse.x, y: mouse.y })
+  }
+
+  /**
+   * Ainmationloop
+   */
+  renderer.setAnimationLoop(() => {
+    // Scene
+    controls.update()
+    compass.animate()
+    groundMap.animate()
+    renderer.render(scene, camera)
+    // Signals
+    setStore({
+      mapTheta: compass.bearing
+    })
+  });
+
+
   onMount(() => {
     console.log('Mounted!')
     onResize()
     addEventListener('resize', onResize, false)
-    addEventListener('dblclick', setMarker, false);
+    addEventListener('dblclick', (evt: MouseEvent) => {
+      evt.stopPropagation()
+      setMarker(evt)
+    }, false);
+    addEventListener('mousemove', setMousePos, false);
   })
 
   onCleanup(() => {
@@ -444,7 +455,7 @@ export const MapGl: Component = (props) => {
     <Suspense fallback="Loading...">
       {renderer.domElement}
       <div style={{ 'text-align': 'left' }}>
-        <pre>{JSON.stringify(store.clickData, null, 2)}</pre>
+        <pre>{JSON.stringify(store.mousePos, null, 2)}</pre>
         <div>Map theta: {Math.round(store.mapTheta * 100) / 100}</div>
         <div>Device bearing: {state().bearing ?? '-'}</div>
       </div>
