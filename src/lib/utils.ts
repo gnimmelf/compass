@@ -1,3 +1,16 @@
+
+export const stringToBool = (val: any) => {
+    if (typeof val === 'string') {
+        if (isNaN(parseInt(val))) {
+            // Not a number-string
+            return val === 'true'
+        }
+        // Is a number-string
+        return !!parseInt(val)
+    }
+    return !!val
+}
+
 export const throttle = (func: Function, timeFrame: number) => {
     let lastTime = 0;
     return (...args: any[]) => {

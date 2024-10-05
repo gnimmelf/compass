@@ -27,7 +27,9 @@
 
 ## TODO
 
-- [ ] Get the compass on the map
+- [x] Get the compass on the map
+
+    - [x] Reposition compass on window resize
 
     - [ ] Toggle to orientate map after device
 

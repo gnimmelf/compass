@@ -47,7 +47,6 @@ const svgLoader = (resourceUrl: string, options: LoaderOptions = {}): Promise<TH
                         shapes.position.x += reCenter.x
                         shapes.position.y += reCenter.y
                     }
-                    console.log('Svg reCentered!')
                     resolve(group);
                 }
                 resolve(group);

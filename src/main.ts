@@ -1,11 +1,15 @@
 import { customElement, hot } from 'solid-element';
 import { Compass } from "./components/Compass.jsx"
-import { Gyro } from "./components/Gyro.jsx";
-// import { MapGl } from './components/MapGlTentone.jsx';
-// import { MapGl } from './components/MapGlTemplate.jsx'
 import { MapGl } from './components/MapGlHurdal.jsx';
 
+declare global {
+    const __APP_VERSION__: string;
+}
+
 customElement("my-compass", Compass);
-customElement("my-map-gl", MapGl);
-customElement("my-gyro", Gyro);
+customElement("my-map-gl", {
+    debug: "0",
+    bgimage: ""
+}, MapGl);
+
 
