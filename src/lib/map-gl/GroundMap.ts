@@ -1,15 +1,9 @@
 import * as THREE from 'three'
 import * as dat from 'lil-gui'
 
-import { latLngToPosition } from '../utils';
-import UrlMapHurdal from '/assets/hurdal-map.png'
-import urlMapHurdalTopo from '/assets/hurdal-map-height.png'
-
-type MapBounds = {
-  minLat: number,
-  maxLat: number,
-  minLng: number,
-  maxLng: number
+type Options = {
+  mapTexture: THREE.Texture
+  dispMapTexture: THREE.Texture
 }
 
 export const guiProps = {
@@ -22,37 +16,26 @@ export const guiProps = {
  * Ground Map Plane
  */
 export class GroundMap {
-  manager: THREE.LoadingManager
   scene: THREE.Scene
-  bounds: MapBounds
+  options: Options
 
   planeGeoWidth = 1000
   planeGeoSegX = 50 // Increase to match diplacement better with texture
 
   planeGeometry!: THREE.PlaneGeometry
-  mapTexture!: THREE.Texture
-  dispMapTexture!: THREE.Texture
+  mapTexture: THREE.Texture
+  dispMapTexture: THREE.Texture
   material!: THREE.MeshStandardMaterial
   mesh!: THREE.Mesh
 
-  constructor(scene: THREE.Scene, bounds: MapBounds) {
-    this.manager = new THREE.LoadingManager()
+  constructor(scene: THREE.Scene, options: Options) {
     this.scene = scene
-    this.bounds = bounds
-    // Start loading textures
-    this.mapTexture = new THREE.TextureLoader(this.manager).load(UrlMapHurdal)
-    this.dispMapTexture = new THREE.TextureLoader(this.manager).load(urlMapHurdalTopo)
+    this.options = options
+    this.mapTexture = options.mapTexture
+    this.dispMapTexture = options.dispMapTexture
     this.dispMapTexture.wrapS = THREE.ClampToEdgeWrapping;
     this.dispMapTexture.wrapT = THREE.ClampToEdgeWrapping;
-  }
-
-  async loadTextures() {
-    return new Promise((resolve) => {
-      this.manager.onLoad = () => {
-        this.#createMesh()
-        resolve(true)
-      };
-    })
+    this.#createMesh()
   }
 
   #createMesh() {
@@ -89,17 +72,14 @@ export class GroundMap {
     const displacementScale = this.material.displacementScale
     const displacementImage = this.dispMapTexture.image as HTMLImageElement;
 
-    this.mesh.geometry.computeBoundingBox()
-    this.mesh.geometry.computeBoundingSphere()
-
     const canvas = document.createElement('canvas');
     canvas.width = displacementImage.width;
     canvas.height = displacementImage.height;
 
-    const ctx2d = canvas.getContext('2d', {
+    const canvas2d = canvas.getContext('2d', {
       willReadFrequently: true
     }) as CanvasRenderingContext2D;
-    ctx2d.drawImage(displacementImage, 0, 0);
+    canvas2d.drawImage(displacementImage, 0, 0);
 
     // Account for one extra vertex per segment dimension, that e.g. a length of 2 segments have 3 vertices
     const maxVertX = (this.planeGeometry.parameters.widthSegments + 1) as number;
@@ -120,31 +100,18 @@ export class GroundMap {
       for (let vertY = 0; vertY < maxVertY; vertY++) {
         const pixelX = Math.min(Math.round(vertX * pixelsPerVertX), maxPixelX)
         const pixelY = Math.min(Math.round(vertY * pixelsPerVertY), maxPixelY)
-
-        imgData = ctx2d.getImageData(pixelX, pixelY, 1, 1)
+        imgData = canvas2d.getImageData(pixelX, pixelY, 1, 1)
         displacementVal = Math.round(imgData.data[0] / 255.0 * displacementScale)
         // Count number of X-rows and add index of current X-row
         vertIdx = (maxVertX * vertY) + vertX
         position.setZ(vertIdx, displacementVal);
       }
     }
-    this.planeGeometry.attributes.position.needsUpdate = true;
+    this.mesh.geometry.computeBoundingBox()
+    this.mesh.geometry.computeBoundingSphere()
     this.planeGeometry.computeVertexNormals();
+    this.planeGeometry.attributes.position.needsUpdate = true;
     console.log('Updated geometry', displacementScale)
-  }
-
-  addLocation(lat: number, long: number) {
-    const { x, y } = latLngToPosition(
-      lat,
-      long,
-      this.bounds.minLat,
-      this.bounds.maxLat,
-      this.bounds.minLng,
-      this.bounds.maxLng,
-      this.planeWidth,
-      this.planeHeight
-    );
-    // TODO! Intersect height and add marker
   }
 
   addGui(folder: dat.GUI) {

@@ -8,8 +8,7 @@ declare global {
 
 customElement("my-compass", Compass);
 customElement("my-map-gl", {
-    debug: "0",
-    bgimage: ""
+    scenebgurl: ""
 }, MapGl);
 
 

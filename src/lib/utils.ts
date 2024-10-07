@@ -39,7 +39,7 @@ export const latLngToPosition = (
     minLng: number,
     maxLng: number,
     planeWidth: number,
-    planeHeight: number
+    planeHeight: number,
 ): {x: number, y: number } => {
     // Normalize the latitude and longitude to the range [0, 1]
     const x = (lng - minLng) / (maxLng - minLng);
