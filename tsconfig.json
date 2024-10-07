@@ -11,15 +11,6 @@
     "types": ["vite/client"],
     "noEmit": true,
     "isolatedModules": true,
-    "resolveJsonModule": true,
-    "paths": {
-      "three/addons/controls/*": [
-        "node_modules/@types/three/examples/jsm/controls/*"
-      ],
-      "three/addons/*": [
-        "node_modules/@types/three/examples/jsm/Addons.d.ts"
-      ]
-    },
-    "baseUrl": "./"
+    "resolveJsonModule": true
   }
 }
